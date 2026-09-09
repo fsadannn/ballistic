@@ -92,8 +92,24 @@ main(void)
         uint64_t pc   = GUEST_BASE_ADDRESS + input.initial_state.pc;
         unicorn_error = uc_reg_write(engine, UC_ARM64_REG_PC, &pc);
 
+        if (unicorn_error != UC_ERR_OK)
+        {
+            response.status = BAL_FUZZER_WORKER_ERROR_EXECUTION_FAILED;
+            (void)uc_mem_unmap(engine, GUEST_BASE_ADDRESS, GUEST_MEMORY_SIZE);
+            (void)write_exact(STDOUT_FILENO, &response, sizeof(response));
+            continue;
+        }
+
         uint64_t x30  = GUEST_BASE_ADDRESS + code_buffer_size_bytes;
         unicorn_error = uc_reg_write(engine, UC_ARM64_REG_X30, &x30);
+
+        if (unicorn_error != UC_ERR_OK)
+        {
+            response.status = BAL_FUZZER_WORKER_ERROR_EXECUTION_FAILED;
+            (void)uc_mem_unmap(engine, GUEST_BASE_ADDRESS, GUEST_MEMORY_SIZE);
+            (void)write_exact(STDOUT_FILENO, &response, sizeof(response));
+            continue;
+        }
 
         uint32_t nzcv = 0U;
 
@@ -133,20 +149,15 @@ main(void)
         {
             response.status = BAL_FUZZER_WORKER_ERROR_COMPILE_FAILED;
         }
-        else
-        {
-            uint64_t sentinel = BAL_ENGINE_SENTINEL;
-            uc_err   err_pc   = uc_reg_write(engine, UC_ARM64_REG_PC, &sentinel);
-            uc_err   err_x30  = uc_reg_write(engine, UC_ARM64_REG_X30, &sentinel);
-            if (err_pc != UC_ERR_OK || err_x30 != UC_ERR_OK)
-            {
-                (void)fprintf(stderr, "sentinel write failed: pc=%d x30=%d\n", err_pc, err_x30);
-            }
-        }
 
         bal_fuzzer_state_capture_unicorn_cpu(&response.final_state, engine);
-
         (void)uc_mem_unmap(engine, GUEST_BASE_ADDRESS, GUEST_MEMORY_SIZE);
+
+        if (response.final_state.pc == x30)
+        {
+            response.final_state.pc    = BAL_ENGINE_SENTINEL;
+            response.final_state.x[30] = BAL_ENGINE_SENTINEL;
+        }
 
         if (write_exact(STDOUT_FILENO, &response, sizeof(response)) != 0)
         {
