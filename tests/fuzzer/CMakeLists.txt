@@ -15,6 +15,12 @@ target_link_libraries(bal_fuzzer_worker_unicorn PRIVATE BallisticTestFuzzerCore 
 add_strict_compiler_flags(bal_fuzzer_worker_unicorn)
 add_sanitizers(bal_fuzzer_worker_unicorn)
 
+add_executable(bal_fuzzer_generate_seeds corpus/generate_seeds.c)
+target_link_libraries(bal_fuzzer_generate_seeds PRIVATE Ballistic)
+target_include_directories(bal_fuzzer_generate_seeds PRIVATE ${CMAKE_SOURCE_DIR}/src)
+add_strict_compiler_flags(bal_fuzzer_generate_seeds)
+add_sanitizers(bal_fuzzer_generate_seeds)
+
 add_executable(bal_fuzzer src/main.c)
 target_link_libraries(bal_fuzzer PRIVATE BallisticTestFuzzerCore)
 add_strict_compiler_flags(bal_fuzzer)
@@ -26,3 +32,9 @@ add_test(
         $<TARGET_FILE:bal_fuzzer_worker_ballistic>
         $<TARGET_FILE:bal_fuzzer_worker_unicorn>
 )
+
+add_executable(bal_fuzzer_generate_seeds corpus/generate_seeds.c)
+target_link_libraries(bal_fuzzer_generate_seeds PRIVATE Ballistic)
+target_include_directories(bal_fuzzer_generate_seeds PRIVATE ${CMAKE_SOURCE_DIR}/src)
+add_strict_compiler_flags(bal_fuzzer_generate_seeds)
+add_sanitizers(bal_fuzzer_generate_seeds)
