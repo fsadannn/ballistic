@@ -104,8 +104,13 @@ typedef struct
     BAL_ALIGNED(64) block_cache_set_t block_cache[BLOCK_CACHE_SETS];
 } internal_engine_state_t;
 
-/// Looks up a JIT compiled host block by its GVA. Returns a pointer to the host JIT code if found,
-/// NULL on a cache miss.
+// Disable address sanitizers when executing jit code because it introduces very subtle but
+// dangerous bugs.
+__attribute__((no_sanitize("address", "undefined"))) static void execute_jit_block(
+    bal_jit_block_t block, bal_cpu_t *BAL_RESTRICT cpu);
+
+/// Looks up a JIT compiled host block by its GVA. Returns a pointer to the host JIT code if
+/// found, NULL on a cache miss.
 static void *block_cache_lookup(const block_cache_set_t *BAL_RESTRICT cache,
                                 const bal_guest_address_t             pc);
 
@@ -427,7 +432,7 @@ bal_engine_run_thread(bal_engine_t *engine)
             BAL_LOG_INFO(&bal_thread_logger, "Executing JIT Block at %p", entry_point);
         }
 
-        compiled_block(engine->cpu);
+        execute_jit_block(compiled_block, engine->cpu);
 
         if (engine->flags & BAL_ENGINE_FLAG_SINGLE_STEP)
         {
@@ -570,6 +575,12 @@ bal_engine_clear_cache(bal_engine_t *engine)
         = (internal_engine_state_t *)engine->engine_state;
     atomic_store_explicit(
         &engine_state->thread_state.clear_cache_requested, true, memory_order_release);
+}
+
+static void
+execute_jit_block(const bal_jit_block_t block, bal_cpu_t *cpu)
+{
+    block(cpu);
 }
 
 BAL_HOT void *
