@@ -119,6 +119,8 @@ bal_jit_debug_unregister_signal_handler(bal_jit_debug_context_t *BAL_RESTRICT co
         return;
     }
 
+    BAL_LOG_INFO(&bal_thread_logger, "Unregistering signal handler.");
+
 #if BAL_PLATFORM_LINUX
 
     struct sigaction sa = { 0 };
@@ -137,9 +139,10 @@ bal_jit_debug_unregister_signal_handler(bal_jit_debug_context_t *BAL_RESTRICT co
 bool
 handle_jit_fault(const uint64_t rip, const uint64_t rbp)
 {
-    /// bal_cpu_t is 64-byte aligned, so RBP must be aswell.
+    // bal_cpu_t is 64-byte aligned, so RBP must be aswell.
     if ((rbp & 63) != 0)
     {
+        BAL_LOG_ERROR(&bal_thread_logger, "Aborting function: rbp is not 64-byte aligned.");
         return false;
     }
 
@@ -231,6 +234,7 @@ extract_fault_context(void *os_context, uint64_t *out_rip, uint64_t *out_rbp)
 
     if (NULL == uc)
     {
+        BAL_LOG_ERROR(&bal_thread_logger, "Aborting function: ucontext is NULL.");
         return false;
     }
 
