@@ -4,45 +4,10 @@
 #include "bal_engine_flags.h"
 #include "bal_log.h"
 #include "bal_platform.h"
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
-
-#ifdef __cplusplus
-#include <atomic>
-typedef std::atomic<bool>   atomic_bool;
-typedef std::atomic<size_t> atomic_size_t;
-
-using std::atomic_init;
-using std::atomic_load_explicit;
-using std::atomic_store_explicit;
-using std::atomic_compare_exchange_strong_explicit;
-
-#if __cplusplus >= 202002L
-
-#define memory_order_relaxed std::memory_order::relaxed
-#define memory_order_consume std::memory_order::consume
-#define memory_order_acquire std::memory_order::acquire
-#define memory_order_release std::memory_order::release
-#define memory_order_acq_rel std::memory_order::acq_rel
-#define memory_order_seq_cst std::memory_order::seq_cst
-
-#else
-
-using std::memory_order_relaxed;
-using std::memory_order_consume;
-using std::memory_order_acquire;
-using std::memory_order_release;
-using std::memory_order_acq_rel;
-using std::memory_order_seq_cst;
-
-#endif
-
-#else
-
-#include <stdatomic.h>
-
-#endif // __cplusplus
 
 #define MAX_INSTRUCTIONS 65535
 
