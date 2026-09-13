@@ -347,9 +347,12 @@ bal_tier1_compiler_translate(bal_tier1_compiler_t         *compiler,
                     }
 
                     BAL_LOG_ERROR(&bal_thread_logger,
-                                  "Aborting function: Invalid MOV instruction detected: %s",
+                                  "Aborting function: Invalid MOV instruction detected at %08x : "
+                                  "%s",
+                                  instruction,
                                   metadata->name);
                     is_block_terminated = true;
+                    compiler->status    = BAL_ERROR_UNKNOWN_INSTRUCTION;
                     break;
                 case OPCODE_ADD:
                 case OPCODE_SUB:
@@ -372,10 +375,12 @@ bal_tier1_compiler_translate(bal_tier1_compiler_t         *compiler,
                     }
 
                     BAL_LOG_ERROR(&bal_thread_logger,
-                                  "Aborting function: Tier 1 unsupported opcode variant: "
-                                  "%s",
+                                  "Aborting function: Tier 1 unsupported opcode variant detected "
+                                  "at %08x : %s",
+                                  instruction,
                                   metadata->name);
                     is_block_terminated = true;
+                    compiler->status    = BAL_ERROR_UNKNOWN_INSTRUCTION;
                     break;
                 case OPCODE_JUMP:;
                     bal_guest_address_t target_pc = 0;
@@ -433,7 +438,8 @@ bal_tier1_compiler_translate(bal_tier1_compiler_t         *compiler,
                     break;
                 default:
                     BAL_LOG_ERROR(&bal_thread_logger,
-                                  " Aborting function: Tier 1 Unsupported Opcode: %s",
+                                  " Aborting function: Tier 1 Unsupported Opcode: %08x : %s ",
+                                  instruction,
                                   metadata->name);
                     compiler->status    = BAL_ERROR_UNKNOWN_INSTRUCTION;
                     is_block_terminated = true;
