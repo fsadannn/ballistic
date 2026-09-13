@@ -366,6 +366,21 @@ bal_tier1_compiler_translate(bal_tier1_compiler_t         *compiler,
                         break;
                     }
 
+                    // ADD/SUB (extended register).
+                    if (BAL_OPERAND_TYPE_IMMEDIATE == metadata->operands[2].type
+                        && 3U == metadata->operands[2].bit_width
+                        && (BAL_OPERAND_TYPE_REGISTER_32 == metadata->operands[4].type
+                            || BAL_OPERAND_TYPE_REGISTER_64 == metadata->operands[4].type))
+                    {
+                        BAL_LOG_ERROR(&bal_thread_logger,
+                                      "Aborting function: Tier 1 does not support ADD/SUB "
+                                      "(extended register) instructions at GVA 0x%016llX.",
+                                      (unsigned long long)guest_address);
+                        compiler->status    = BAL_ERROR_UNKNOWN_INSTRUCTION;
+                        is_block_terminated = true;
+                        break;
+                    }
+
                     if (BAL_LIKELY(BAL_OPERAND_TYPE_IMMEDIATE == metadata->operands[2].type))
                     {
                         const bool is_sub = (OPCODE_SUB == metadata->ir_opcode)
