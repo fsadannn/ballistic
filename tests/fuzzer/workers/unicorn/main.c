@@ -153,11 +153,8 @@ main(void)
         bal_fuzzer_state_capture_unicorn_cpu(&response.final_state, engine);
         (void)uc_mem_unmap(engine, GUEST_BASE_ADDRESS, GUEST_MEMORY_SIZE);
 
-        if (response.final_state.pc == x30)
-        {
-            response.final_state.pc    = BAL_ENGINE_SENTINEL;
-            response.final_state.x[30] = BAL_ENGINE_SENTINEL;
-        }
+        response.final_state.pc    = BAL_ENGINE_SENTINEL;
+        response.final_state.x[30] = BAL_ENGINE_SENTINEL;
 
         if (write_exact(STDOUT_FILENO, &response, sizeof(response)) != 0)
         {
