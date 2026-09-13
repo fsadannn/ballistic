@@ -34,7 +34,7 @@ bal_fuzzer_ipc_spawn(bal_fuzzer_worker_handle_t *handle, const char *worker_path
         BAL_LOG_ERROR(&bal_thread_logger,
                       "Aborting function: pipe(to_chile) failed because %s.",
                       strerror(errno));
-        return BAL_ERROR_INVALID_ARGUMENT;
+        return BAL_ERROR_THREAD_CREATION;
     }
 
     if (pipe(from_child) != 0)
