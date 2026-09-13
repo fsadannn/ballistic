@@ -75,6 +75,7 @@ main(void)
         if (status != BAL_SUCCESS)
         {
             response.status = BAL_FUZZER_WORKER_ERROR_EXECUTION_FAILED;
+            continue;
         }
 
         status = bal_engine_run_thread(&engine);
