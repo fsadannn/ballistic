@@ -310,8 +310,7 @@ bal_fuzzer_ipc_receive(const int output_file_descriptor, bal_fuzzer_response_t *
                       remaining);
     }
 
-    if (response->status < BAL_FUZZER_WORKER_OK
-        || response->status > BAl_FUZZER_WORKER_ERROR_CRASHED)
+    if (response->status < BAL_FUZZER_WORKER_OK || response->status > BAL_FUZZER_WORKER_ERROR_END)
     {
         BAL_LOG_ERROR(&bal_thread_logger,
                       "Received file descriptor %d worker returned "

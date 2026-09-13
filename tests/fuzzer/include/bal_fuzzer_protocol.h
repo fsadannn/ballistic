@@ -30,6 +30,7 @@ typedef enum
     BAL_FUZZER_WORKER_ERROR_TIMEOUT,
     BAl_FUZZER_WORKER_ERROR_CRASHED,
     BAL_FUZZER_WORKER_ERROR_UNKNOWN_INSTRUCTION,
+    BAL_FUZZER_WORKER_ERROR_END
 } bal_fuzzer_worker_status_t;
 
 /// Fuzz input sent to the worker.
