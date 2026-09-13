@@ -28,13 +28,6 @@ add_sanitizers(bal_fuzzer)
 
 add_test(
         NAME fuzzer
-        COMMAND bal_fuzzer
-        $<TARGET_FILE:bal_fuzzer_worker_ballistic>
-        $<TARGET_FILE:bal_fuzzer_worker_unicorn>
+        COMMAND sh -c "$<TARGET_FILE:bal_fuzzer_generate_seeds> && $<TARGET_FILE:bal_fuzzer> $<TARGET_FILE:bal_fuzzer_worker_ballistic> $<TARGET_FILE:bal_fuzzer_worker_unicorn> seeds.bin"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
 )
-
-add_executable(bal_fuzzer_generate_seeds corpus/generate_seeds.c)
-target_link_libraries(bal_fuzzer_generate_seeds PRIVATE Ballistic)
-target_include_directories(bal_fuzzer_generate_seeds PRIVATE ${CMAKE_SOURCE_DIR}/src)
-add_strict_compiler_flags(bal_fuzzer_generate_seeds)
-add_sanitizers(bal_fuzzer_generate_seeds)
