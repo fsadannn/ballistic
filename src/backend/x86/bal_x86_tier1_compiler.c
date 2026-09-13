@@ -343,6 +343,7 @@ bal_tier1_compiler_translate(bal_tier1_compiler_t         *compiler,
                         || BAL_LIKELY(BAL_OPERAND_TYPE_REGISTER_32 == metadata->operands[1].type))
                     {
                         translate_mov_register(compiler, metadata, instruction);
+                        break;
                     }
 
                     BAL_LOG_ERROR(&bal_thread_logger,
