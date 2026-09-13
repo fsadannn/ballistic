@@ -18,7 +18,7 @@ int
 main(void)
 {
     bal_logger_init_default();
-    bal_thread_logger.min_level    = BAL_LOG_LEVEL_TRACE;
+    bal_thread_logger.min_level    = BAL_LOG_LEVEL_NONE;
     bal_fuzzer_input_t    input    = {};
     bal_fuzzer_response_t response = {};
 
