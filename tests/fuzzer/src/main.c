@@ -16,7 +16,7 @@ main(const int argc, const char **argv)
     }
 
     bal_logger_init_default();
-    bal_thread_logger.min_level = BAL_LOG_LEVEL_ERROR;
+    bal_thread_logger.min_level = BAL_LOG_LEVEL_INFO;
 
     BAL_LOG_INFO(&bal_thread_logger, "Running Test...");
     const char *BAL_RESTRICT ballistic_worker_path = argv[1];
