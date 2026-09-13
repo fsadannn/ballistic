@@ -9,6 +9,12 @@ target_link_libraries(BallisticTestAssemblerFixture PUBLIC ${PROJECT_NAME} unity
 add_strict_compiler_flags(BallisticTestAssemblerFixture)
 add_sanitizers(BallisticTestAssemblerFixture)
 
+add_library(BallisticTestSubprocess STATIC helpers/subprocess.c)
+target_include_directories(BallisticTestSubprocess PUBLIC helpers/)
+target_link_libraries(BallisticTestSubprocess PUBLIC ${PROJECT_NAME} unity)
+add_strict_compiler_flags(BallisticTestSubprocess)
+add_sanitizers(BallisticTestSubprocess)
+
 macro(add_ballistic_test test_name test_source)
     add_executable(${test_name} ${test_source})
     target_link_libraries(${test_name} PRIVATE ${PROJECT_NAME} unity)
