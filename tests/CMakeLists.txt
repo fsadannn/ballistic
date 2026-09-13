@@ -9,6 +9,12 @@ target_link_libraries(BallisticTestAssemblerFixture PUBLIC ${PROJECT_NAME} unity
 add_strict_compiler_flags(BallisticTestAssemblerFixture)
 add_sanitizers(BallisticTestAssemblerFixture)
 
+add_library(BallisticTestSubprocess STATIC helpers/subprocess.c)
+target_include_directories(BallisticTestSubprocess PUBLIC helpers/)
+target_link_libraries(BallisticTestSubprocess PUBLIC ${PROJECT_NAME} unity)
+add_strict_compiler_flags(BallisticTestSubprocess)
+add_sanitizers(BallisticTestSubprocess)
+
 macro(add_ballistic_test test_name test_source)
     add_executable(${test_name} ${test_source})
     target_link_libraries(${test_name} PRIVATE ${PROJECT_NAME} unity)
@@ -39,6 +45,10 @@ add_ballistic_test(test_bal_assembler_sub unit/bal_assembler/test_bal_assembler_
 target_link_libraries(test_bal_assembler_sub PUBLIC BallisticTestAssemblerFixture)
 
 add_ballistic_test(test_bal_decoder_integrity unit/bal_decoder/test_bal_decoder_integrity.c)
+
+add_ballistic_test(test_subprocess unit/test_subprocess.c)
+target_link_libraries(test_subprocess PUBLIC BallisticTestSubprocess)
+set_tests_properties(test_subprocess PROPERTIES ENVIRONMENT "ASAN_OPTIONS=handle_segv=0:handle_sigill=0:handle_abort=0")
 
 add_test(
         NAME doctest
