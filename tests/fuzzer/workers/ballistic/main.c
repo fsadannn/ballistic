@@ -1,5 +1,6 @@
 #include "bal_attributes.h"
 #include "bal_engine.h"
+#include "bal_fuzzer_ipc.h"
 #include "bal_fuzzer_protocol.h"
 #include "bal_fuzzer_state.h"
 #include "bal_log.h"
@@ -11,9 +12,6 @@
 #define WORKER_GUEST_MEMORY 4096U
 #define ARM64_RET_ENCODING  0xD65F03C0U
 
-static int read_exact(int fd, void *data, size_t size);
-static int write_exact(int fd, const void *data, size_t size);
-
 int
 main(void)
 {
@@ -24,7 +22,7 @@ main(void)
 
     for (;;)
     {
-        if (read_exact(STDIN_FILENO, &input, sizeof(input)) != 0)
+        if (bal_fuzzer_ipc_receive(STDIN_FILENO, &input, sizeof(input)) != BAL_SUCCESS)
         {
             return 0;
         }
@@ -41,7 +39,7 @@ main(void)
         if (instruction_count > BAL_FUZZER_MAX_INSTRUCTIONS)
         {
             response.status = BAL_FUZZER_WORKER_ERROR_COMPILE_FAILED;
-            (void)write_exact(STDOUT_FILENO, &response, sizeof(response));
+            (void)bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response));
             continue;
         }
 
@@ -56,7 +54,7 @@ main(void)
         if (status != BAL_SUCCESS)
         {
             response.status = BAL_FUZZER_WORKER_ERROR_COMPILE_FAILED;
-            (void)write_exact(STDOUT_FILENO, &response, sizeof(response));
+            (void)bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response));
             continue;
         }
 
@@ -97,53 +95,9 @@ main(void)
         bal_engine_destroy(&engine);
         (void)bal_flat_translation_interface_destroy(&allocator, &memory_interface);
 
-        if (write_exact(STDOUT_FILENO, &response, sizeof(response)) != 0)
+        if (bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response)) != BAL_SUCCESS)
         {
             return 0;
         }
     }
-}
-
-int
-read_exact(const int fd, void *BAL_RESTRICT data, const size_t size)
-{
-    uint8_t *BAL_RESTRICT cursor    = (uint8_t *)data;
-    size_t                remaining = size;
-
-    while (remaining > 0U)
-    {
-        const ssize_t bytes_read = read(fd, cursor, remaining);
-
-        if (bytes_read <= 0)
-        {
-            return -1;
-        }
-
-        cursor += (size_t)bytes_read;
-        remaining -= (size_t)bytes_read;
-    }
-
-    return 0;
-}
-
-int
-write_exact(const int fd, const void *data, const size_t size)
-{
-    const uint8_t *cursor    = (const uint8_t *)data;
-    size_t         remaining = size;
-
-    while (remaining > 0U)
-    {
-        const ssize_t bytes_read = write(fd, cursor, remaining);
-
-        if (bytes_read <= 0)
-        {
-            return -1;
-        }
-
-        cursor += (size_t)bytes_read;
-        remaining -= (size_t)bytes_read;
-    }
-
-    return 0;
 }

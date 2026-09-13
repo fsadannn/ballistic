@@ -91,7 +91,7 @@ main(const int argc, const char **argv)
         input.instructions[0]   = *seed_cursor;
         input.initial_state.pc  = 0U;
 
-        status = bal_fuzzer_ipc_send(ballistic_worker.input_file_descriptor, &input);
+        status = bal_fuzzer_ipc_send(ballistic_worker.input_file_descriptor, &input, sizeof(input));
 
         if (status != BAL_SUCCESS)
         {
@@ -103,7 +103,7 @@ main(const int argc, const char **argv)
             continue;
         }
 
-        status = bal_fuzzer_ipc_send(unicorn_worker.input_file_descriptor, &input);
+        status = bal_fuzzer_ipc_send(unicorn_worker.input_file_descriptor, &input, sizeof(input));
 
         if (status != BAL_SUCCESS)
         {
@@ -119,10 +119,12 @@ main(const int argc, const char **argv)
         bal_fuzzer_response_t unicorn_response   = {};
 
         const bal_error_t ballistic_ipc_status
-            = bal_fuzzer_ipc_receive(ballistic_worker.output_file_descriptor, &ballistic_response);
+            = bal_fuzzer_ipc_receive(ballistic_worker.output_file_descriptor,
+                                     &ballistic_response,
+                                     sizeof(ballistic_response));
 
-        const bal_error_t unicorn_ipc_status
-            = bal_fuzzer_ipc_receive(unicorn_worker.output_file_descriptor, &unicorn_response);
+        const bal_error_t unicorn_ipc_status = bal_fuzzer_ipc_receive(
+            unicorn_worker.output_file_descriptor, &unicorn_response, sizeof(ballistic_response));
 
         if (ballistic_ipc_status != BAL_SUCCESS)
         {

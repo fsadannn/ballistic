@@ -1,4 +1,5 @@
 #include "bal_engine.h"
+#include "bal_fuzzer_ipc.h"
 #include "bal_fuzzer_protocol.h"
 #include "bal_fuzzer_state.h"
 #include "unicorn/unicorn.h"
@@ -7,9 +8,6 @@
 
 #define GUEST_BASE_ADDRESS 0x1000ULL
 #define GUEST_MEMORY_SIZE  0X1000ULL // 4 KiB, one page.
-
-static int read_exact(int fd, void *data, size_t size);
-static int write_exact(int fd, const void *data, size_t size);
 
 int
 main(void)
@@ -27,7 +25,7 @@ main(void)
 
     while (true)
     {
-        if (read_exact(STDIN_FILENO, &input, sizeof(input)) != 0)
+        if (bal_fuzzer_ipc_receive(STDIN_FILENO, &input, sizeof(input)) != BAL_SUCCESS)
         {
             break;
         }
@@ -39,7 +37,7 @@ main(void)
         if (input.instruction_count > BAL_FUZZER_MAX_INSTRUCTIONS)
         {
             response.status = BAL_FUZZER_WORKER_ERROR_COMPILE_FAILED;
-            (void)write_exact(STDOUT_FILENO, &response, sizeof(response));
+            (void)bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response));
             continue;
         }
 
@@ -49,7 +47,7 @@ main(void)
         if (unicorn_error != UC_ERR_OK)
         {
             response.status = BAL_FUZZER_WORKER_ERROR_COMPILE_FAILED;
-            (void)write_exact(STDOUT_FILENO, &response, sizeof(response));
+            (void)bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response));
             continue;
         }
 
@@ -61,7 +59,7 @@ main(void)
         {
             response.status = BAL_FUZZER_WORKER_ERROR_COMPILE_FAILED;
             (void)uc_mem_unmap(engine, GUEST_BASE_ADDRESS, GUEST_MEMORY_SIZE);
-            (void)write_exact(STDOUT_FILENO, &response, sizeof(response));
+            (void)bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response));
             continue;
         }
 
@@ -85,7 +83,7 @@ main(void)
         {
             response.status = BAL_FUZZER_WORKER_ERROR_EXECUTION_FAILED;
             (void)uc_mem_unmap(engine, GUEST_BASE_ADDRESS, GUEST_MEMORY_SIZE);
-            (void)write_exact(STDOUT_FILENO, &response, sizeof(response));
+            (void)bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response));
             continue;
         }
 
@@ -96,7 +94,7 @@ main(void)
         {
             response.status = BAL_FUZZER_WORKER_ERROR_EXECUTION_FAILED;
             (void)uc_mem_unmap(engine, GUEST_BASE_ADDRESS, GUEST_MEMORY_SIZE);
-            (void)write_exact(STDOUT_FILENO, &response, sizeof(response));
+            (void)bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response));
             continue;
         }
 
@@ -107,7 +105,7 @@ main(void)
         {
             response.status = BAL_FUZZER_WORKER_ERROR_EXECUTION_FAILED;
             (void)uc_mem_unmap(engine, GUEST_BASE_ADDRESS, GUEST_MEMORY_SIZE);
-            (void)write_exact(STDOUT_FILENO, &response, sizeof(response));
+            (void)bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response));
             continue;
         }
 
@@ -139,7 +137,7 @@ main(void)
         {
             response.status = BAL_FUZZER_WORKER_ERROR_EXECUTION_FAILED;
             (void)uc_mem_unmap(engine, GUEST_BASE_ADDRESS, GUEST_MEMORY_SIZE);
-            (void)write_exact(STDOUT_FILENO, &response, sizeof(response));
+            (void)bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response));
             continue;
         }
 
@@ -156,57 +154,13 @@ main(void)
         response.final_state.pc    = BAL_ENGINE_SENTINEL;
         response.final_state.x[30] = BAL_ENGINE_SENTINEL;
 
-        if (write_exact(STDOUT_FILENO, &response, sizeof(response)) != 0)
+        if (bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response)) != BAL_SUCCESS)
         {
             break;
         }
     }
 
     (void)uc_close(engine);
-    return 0;
-}
-
-int
-read_exact(const int fd, void *BAL_RESTRICT data, const size_t size)
-{
-    uint8_t *BAL_RESTRICT cursor    = (uint8_t *)data;
-    size_t                remaining = size;
-
-    while (remaining > 0U)
-    {
-        const ssize_t bytes_read = read(fd, cursor, remaining);
-
-        if (bytes_read <= 0)
-        {
-            return -1;
-        }
-
-        cursor += (size_t)bytes_read;
-        remaining -= (size_t)bytes_read;
-    }
-
-    return 0;
-}
-
-int
-write_exact(const int fd, const void *data, const size_t size)
-{
-    const uint8_t *cursor    = (const uint8_t *)data;
-    size_t         remaining = size;
-
-    while (remaining > 0U)
-    {
-        const ssize_t bytes_read = write(fd, cursor, remaining);
-
-        if (bytes_read <= 0)
-        {
-            return -1;
-        }
-
-        cursor += (size_t)bytes_read;
-        remaining -= (size_t)bytes_read;
-    }
-
     return 0;
 }
 

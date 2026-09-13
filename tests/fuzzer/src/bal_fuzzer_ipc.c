@@ -128,57 +128,51 @@ bal_fuzzer_ipc_destroy(bal_fuzzer_worker_handle_t *handle)
 }
 
 bal_error_t
-bal_fuzzer_ipc_send(const int input_file_descriptor, const bal_fuzzer_input_t *input)
+bal_fuzzer_ipc_send(const int file_descriptor, const void *data, const size_t size)
 {
-    if (input_file_descriptor < 0)
+    if (file_descriptor < 0)
     {
-        BAL_LOG_ERROR(&bal_thread_logger,
-                      "Aborting function: invalid file descriptor %d.",
-                      input_file_descriptor);
+        BAL_LOG_ERROR(
+            &bal_thread_logger, "Aborting function: invalid file descriptor %d.", file_descriptor);
         return BAL_ERROR_INVALID_ARGUMENT;
     }
 
-    if (NULL == input)
+    if (NULL == data)
     {
-        BAL_LOG_ERROR(&bal_thread_logger, "Aborting function: input is NULL.");
+        BAL_LOG_ERROR(&bal_thread_logger, "Aborting function: data is NULL.");
         return BAL_ERROR_INVALID_ARGUMENT;
     }
 
     // Catch a closed/corrupted descriptor before touching the pipe.
-    if (fcntl(input_file_descriptor, F_GETFL) < 0)
+    if (fcntl(file_descriptor, F_GETFL) < 0)
     {
         BAL_LOG_ERROR(&bal_thread_logger,
                       "Aborting function: file descriptor %d is invalid or "
                       "closed because %s.",
-                      input_file_descriptor,
+                      file_descriptor,
                       strerror(errno));
         return BAL_ERROR_INVALID_ARGUMENT;
     }
 
-    if (input->instruction_count > BAL_FUZZER_MAX_INSTRUCTIONS)
+    if (0U == size)
     {
-        BAL_LOG_ERROR(&bal_thread_logger,
-                      "Aborting function: instruction_count %u exceeds "
-                      "maximum %u.",
-                      input->instruction_count,
-                      (unsigned)BAL_FUZZER_MAX_INSTRUCTIONS);
-        return BAL_ERROR_INVALID_ARGUMENT;
+        return BAL_SUCCESS;
     }
 
-    const uint8_t *BAL_RESTRICT input_cursor = (const uint8_t *)input;
-    size_t                      remaining    = sizeof(*input);
+    const uint8_t *BAL_RESTRICT data_cursor = (const uint8_t *)data;
+    size_t                      remaining   = size;
 
     while (remaining > 0U)
     {
         const bal_error_t wait_status
-            = ipc_wait_for_file_descriptor(input_file_descriptor, POLLOUT, IPC_TIMEOUT_MS);
+            = ipc_wait_for_file_descriptor(file_descriptor, POLLOUT, IPC_TIMEOUT_MS);
 
         if (wait_status != BAL_SUCCESS)
         {
             return wait_status;
         }
 
-        const ssize_t written = write(input_file_descriptor, input_cursor, remaining);
+        const ssize_t written = write(file_descriptor, data_cursor, remaining);
 
         if (written < 0)
         {
@@ -192,14 +186,14 @@ bal_fuzzer_ipc_send(const int input_file_descriptor, const bal_fuzzer_input_t *i
                 BAL_LOG_ERROR(&bal_thread_logger,
                               "IPC send failed on file descriptor %d because "
                               "worker closed the pipe (EPIPE).",
-                              input_file_descriptor);
+                              file_descriptor);
             }
             else
             {
                 BAL_LOG_ERROR(&bal_thread_logger,
                               "IPC send failed on file descriptor %d because "
                               "%s",
-                              input_file_descriptor,
+                              file_descriptor,
                               strerror(errno));
             }
 
@@ -211,18 +205,18 @@ bal_fuzzer_ipc_send(const int input_file_descriptor, const bal_fuzzer_input_t *i
             BAL_LOG_ERROR(&bal_thread_logger,
                           "IPC send failed on file descriptor %d because "
                           "write returned 0 with %zu bytes remaining.",
-                          input_file_descriptor,
+                          file_descriptor,
                           remaining);
             return BAL_ERROR_THREAD_CLEANUP;
         }
 
-        input_cursor += (size_t)written;
+        data_cursor += (size_t)written;
         remaining -= (size_t)written;
         BAL_LOG_TRACE(&bal_thread_logger,
                       "IPC sent %zd bytes to file descriptor %d, %zu bytes "
                       "remaining.",
                       written,
-                      input_file_descriptor,
+                      file_descriptor,
                       remaining);
     }
 
@@ -230,49 +224,51 @@ bal_fuzzer_ipc_send(const int input_file_descriptor, const bal_fuzzer_input_t *i
 }
 
 bal_error_t
-bal_fuzzer_ipc_receive(const int output_file_descriptor, bal_fuzzer_response_t *response)
+bal_fuzzer_ipc_receive(const int file_descriptor, void *data, const size_t size)
 {
-    if (output_file_descriptor < 0)
+    if (file_descriptor < 0)
     {
-        BAL_LOG_ERROR(&bal_thread_logger,
-                      "Aborting function: invalid file descriptor %d.",
-                      output_file_descriptor);
+        BAL_LOG_ERROR(
+            &bal_thread_logger, "Aborting function: invalid file descriptor %d.", file_descriptor);
         return BAL_ERROR_INVALID_ARGUMENT;
     }
 
-    if (NULL == response)
+    if (NULL == data)
     {
-        BAL_LOG_ERROR(&bal_thread_logger, "Aborting function: response is NULL.");
+        BAL_LOG_ERROR(&bal_thread_logger, "Aborting function: data is NULL.");
         return BAL_ERROR_INVALID_ARGUMENT;
     }
 
     // Catch a closed/corrupted descriptor before touching the pipe.
-    if (fcntl(output_file_descriptor, F_GETFL) < 0)
+    if (fcntl(file_descriptor, F_GETFL) < 0)
     {
         BAL_LOG_ERROR(&bal_thread_logger,
                       "Aborting function: file descriptor %d is invalid or "
                       "closed because %s.",
-                      output_file_descriptor,
+                      file_descriptor,
                       strerror(errno));
         return BAL_ERROR_INVALID_ARGUMENT;
     }
 
-    (void)memset(response, 0, sizeof(*response));
+    if (0U == size)
+    {
+        return BAL_SUCCESS;
+    }
 
-    uint8_t *BAL_RESTRICT response_cursor = (uint8_t *)response;
-    size_t                remaining       = sizeof(*response);
+    uint8_t *BAL_RESTRICT data_cursor = (uint8_t *)data;
+    size_t                remaining   = size;
 
     while (remaining > 0U)
     {
         const bal_error_t wait_status
-            = ipc_wait_for_file_descriptor(output_file_descriptor, POLLIN, IPC_TIMEOUT_MS);
+            = ipc_wait_for_file_descriptor(file_descriptor, POLLIN, IPC_TIMEOUT_MS);
 
         if (wait_status != BAL_SUCCESS)
         {
             return wait_status;
         }
 
-        const ssize_t bytes_read = read(output_file_descriptor, response_cursor, remaining);
+        const ssize_t bytes_read = read(file_descriptor, data_cursor, remaining);
 
         if (bytes_read < 0)
         {
@@ -284,7 +280,7 @@ bal_fuzzer_ipc_receive(const int output_file_descriptor, bal_fuzzer_response_t *
             BAL_LOG_ERROR(&bal_thread_logger,
                           "IPC receive failed on file descriptor %d because "
                           "%s.",
-                          output_file_descriptor,
+                          file_descriptor,
                           strerror(errno));
             return BAL_ERROR_THREAD_CLEANUP;
         }
@@ -295,29 +291,19 @@ bal_fuzzer_ipc_receive(const int output_file_descriptor, bal_fuzzer_response_t *
                           "IPC Receive failed on file descriptor %d because "
                           "worker closed the pipe. %zu bytes still expected"
                           ".",
-                          output_file_descriptor,
+                          file_descriptor,
                           remaining);
             return BAL_ERROR_THREAD_CLEANUP;
         }
 
-        response_cursor += (size_t)bytes_read;
+        data_cursor += (size_t)bytes_read;
         remaining -= (size_t)bytes_read;
         BAL_LOG_TRACE(&bal_thread_logger,
-                      "IPC received %zd bytes to file descriptor %d, %zu bytes "
+                      "IPC received %zd bytes from file descriptor %d, %zu bytes "
                       "remaining.",
                       bytes_read,
-                      output_file_descriptor,
+                      file_descriptor,
                       remaining);
-    }
-
-    if (response->status < BAL_FUZZER_WORKER_OK || response->status > BAL_FUZZER_WORKER_ERROR_END)
-    {
-        BAL_LOG_ERROR(&bal_thread_logger,
-                      "Received file descriptor %d worker returned "
-                      "out-of-range status %d.",
-                      output_file_descriptor,
-                      response->status);
-        return BAL_ERROR_STRUCT_CORRUPTED;
     }
 
     return BAL_SUCCESS;
