@@ -159,8 +159,8 @@ local function derive_operand_type(text, hover)
         return "BAL_OPERAND_TYPE_REGISTER_64"
     end
 
-    if h:find("128%-bit") or h:find("simd") or h:find("vector") or h:find("scalable") then
-        return "BAL_OPERAND_TYPE_REGISTER_128"
+    if h:find("general%-purpose") or (h:find("register") and (h:find("source") or h:find("destination"))) then
+        return "BAL_OPERAND_TYPE_REGISTER_64"
     end
 
     if h:find("condition") or h:find("cond") then
