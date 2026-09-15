@@ -110,7 +110,12 @@ main(void)
                 {
                     seed = build_seed(
                         metadata_cursor, operand_index, CONDITION_SEEDS[condition_seed_index]);
-                    ++seeds_written_to_file;
+
+                    if (bal_decode_arm64(seed) != NULL)
+                    {
+                        (void)fwrite(&seed, sizeof(seed), 1U, seeds_file);
+                        ++seeds_written_to_file;
+                    }
                 }
             }
             else
