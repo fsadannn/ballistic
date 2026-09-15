@@ -75,7 +75,7 @@ main(void)
                      ++register_seed_index)
                 {
                     seed = build_seed(
-                        metadata_cursor, register_seed_index, REGISTER_SEEDS[register_seed_index]);
+                        metadata_cursor, operand_index, REGISTER_SEEDS[register_seed_index]);
 
                     if (bal_decode_arm64(seed) != NULL)
                     {
