@@ -485,6 +485,8 @@ bal_tier1_compiler_translate(bal_tier1_compiler_t         *compiler,
             }
 
             ++arm_instruction_count;
+            guest_address += 4;
+            ++host_address_cursor;
 
             if (i + 1 == max_instructions)
             {
@@ -498,9 +500,6 @@ bal_tier1_compiler_translate(bal_tier1_compiler_t         *compiler,
             {
                 break;
             }
-
-            guest_address += 4;
-            ++host_address_cursor;
         }
     }
 
@@ -945,6 +944,18 @@ translate_add_sub_imm(bal_tier1_compiler_t *BAL_RESTRICT                     com
         bal_sliding_window_push(&compiler->window, add_macro);
     }
 
+    const bool is_32bit = BAL_OPERAND_TYPE_REGISTER_32 == operand_cursor[0].type;
+
+    if (true == is_32bit)
+    {
+        const bal_x86_macro_t mask_macro = {
+            .opcode              = BAL_X86_MACRO_AND_REGISTER_IMMEDIATE,
+            .destination         = x86_rd,
+            .immediate_or_offset = 0xFFFFFFFFULL,
+        };
+        bal_sliding_window_push(&compiler->window, mask_macro);
+    }
+
     if (true == is_setting_flags)
     {
         const bal_x86_macro_t set_n_macro = {
@@ -1058,6 +1069,18 @@ translate_add_sub_reg(bal_tier1_compiler_t *BAL_RESTRICT                     com
             .source      = x86_rm,
         };
         bal_sliding_window_push(&compiler->window, add_macro);
+    }
+
+    const bool is_32bit = BAL_OPERAND_TYPE_REGISTER_32 == operand_cursor[0].type;
+
+    if (true == is_32bit)
+    {
+        const bal_x86_macro_t mask_macro = {
+            .opcode              = BAL_X86_MACRO_AND_REGISTER_IMMEDIATE,
+            .destination         = x86_rd,
+            .immediate_or_offset = 0xFFFFFFFFULL,
+        };
+        bal_sliding_window_push(&compiler->window, mask_macro);
     }
 
     if (true == is_setting_flags)
