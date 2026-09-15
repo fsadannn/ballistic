@@ -27,8 +27,9 @@ bal_subprocess_check_child(void)
         ExitProcess(127);
     }
 
-    HMODULE                   hMod      = GetModuleHandleA(NULL);
-    const bal_subprocess_fn_t target_fn = (bal_subprocess_fn_t)((uintptr_t)hMod + offset);
+    HMODULE                         hMod = GetModuleHandleA(NULL);
+    const bal_subprocess_function_t target_fn
+        = (bal_subprocess_function_t)((uintptr_t)hMod + offset);
 
     // Suppress system crash and abort modal dialogs on Windows so the test does not hang.
     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
@@ -47,7 +48,7 @@ bal_subprocess_auto_intercept(void)
 }
 
 bal_subprocess_result_t
-bal_subprocess_run(const bal_subprocess_fn_t fn)
+bal_subprocess_run(const bal_subprocess_function_t fn)
 {
     bal_subprocess_result_t result;
     memset(&result, 0, sizeof(result));
