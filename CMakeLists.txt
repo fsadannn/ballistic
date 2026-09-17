@@ -84,6 +84,7 @@ message(STATUS "================================================================
 # option(BALLISTIC_ENABLE_CPU_FEATURE_DETECTION "Makes Ballistic able to detect CPU features of the host" ON)
 option(BALLISTIC_ENABLE_LINK_TIME_OPTIMIZATION "Enables LTO for Ballistic" ON)
 option(BALLISTIC_BUILD_TESTS "Enables Ballistic tests" ON)
+option(BALLISTIC_BUILD_DOCS "Enables automatic documentation generation" ON)
 
 # -----------------------------------------------------------------------------
 # Compile Ballistic
@@ -174,50 +175,55 @@ target_link_libraries(${DECODER_CLI_NAME} PRIVATE ${PROJECT_NAME})
 add_strict_compiler_flags(${DECODER_CLI_NAME})
 add_sanitizers(${DECODER_CLI_NAME})
 
-# Our documentation generator completely relies on Clang running on UNIX
-# compatable machines for parsing C code. I do not have a Windows machine to
-# to test this so only Linux and macOS are supported.
-#if (CMAKE_SYSTEM_NAME STREQUAL "Linux" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-#    message(STATUS "[Ballistic] Unix environment detected. Configuring 'cdoc' documentation generator.")
-#    set(CDOC_NAME "cdoc")
-#    find_library(CLANG_LIBRARY NAMES clang libclang)
-#    find_path(CLANG_INCLUDE_DIR NAMES clang-c/Index.h)
-#
-#    if (NOT CLANG_LIBRARY OR NOT CLANG_INCLUDE_DIR)
-#        message(WARNING "[Ballistic] 'libclang' is required to build the 'cdoc' tool on Unix. "
-#                "Please install libclang-dev (Linux) or llvm (macOS).")
-#    else ()
-#
-#        message(STATUS "[Ballistic] Found libclang at: ${CLANG_LIBRARY}.")
-#
-#        add_executable(${CDOC_NAME} tools/cdoc.c)
-#        target_include_directories(${CDOC_NAME} PRIVATE ${CLANG_INCLUDE_DIR}
-#                ${CMAKE_CURRENT_SOURCE_DIR}/extern/cmark/src
-#                ${CMAKE_CURRENT_BINARY_DIR}/extern/cmark/src/)
-#        target_link_libraries(${CDOC_NAME} PRIVATE ${CLANG_LIBRARY} cmark)
-#        set(PROJECT_HEADERS
-#                include/bal_engine.h
-#                include/bal_engine_flags.h
-#                include/bal_decoder.h
-#                include/bal_memory.h
-#                include/bal_types.h
-#                include/bal_errors.h
-#                include/bal_log.h
-#                include/bal_assembler.h
-#                include/backend/bal_cpu.h
-#                include/backend/x86/bal_x86_assembler.h
-#                include/backend/x86/bal_x86_sliding_window.h
-#                include/backend/x86/bal_x86_tier1_compiler.h
-#        )
-#
-#        add_custom_target(doc ALL
-#                COMMAND $<TARGET_FILE:cdoc> docs/cdoc ${PROJECT_HEADERS}
-#                WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-#                COMMENT "Generating Documentation..."
-#                DEPENDS cdoc
-#        )
-#    endif ()
-#endif ()
+# -----------------------------------------------------------------------------
+# Documentation Generator (cdoc)
+# -----------------------------------------------------------------------------
+message(STATUS "[Ballistic] Configuring 'cdoc' documentation generator...")
+
+set(CDOC_SCRIPT "${CMAKE_SOURCE_DIR}/tools/scripts/include/cdoc.lua")
+set(CDOC_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/docs/cdoc")
+
+set(PROJECT_HEADERS
+        include/bal_assembler.h
+        include/bal_assert.h
+        include/bal_attributes.h
+        include/bal_decoder.h
+        include/bal_engine.h
+        include/bal_engine_flags.h
+        include/bal_errors.h
+        include/bal_jit_debug.h
+        include/bal_log.h
+        include/bal_memory.h
+        include/bal_platform.h
+        include/bal_safety.h
+        include/bal_types.h
+        include/backend/bal_cpu.h
+        include/backend/x86/bal_x86_assembler.h
+        include/backend/x86/bal_x86_sliding_window.h
+        include/backend/x86/bal_x86_tier1_compiler.h
+)
+
+set(CDOC_TARGET_ALL)
+if (BALLISTIC_BUILD_DOCS)
+    set(CDOC_TARGET_ALL ALL)
+endif ()
+
+set(CDOC_EXTRA_ARGS)
+if (CLANG_LIBRARY AND NOT CLANG_LIBRARY MATCHES ".*-NOTFOUND")
+    list(APPEND CDOC_EXTRA_ARGS --clang-library "${CLANG_LIBRARY}")
+endif ()
+
+add_custom_target(doc ${CDOC_TARGET_ALL}
+        COMMAND $<TARGET_FILE:luajit_exe> ${CDOC_SCRIPT}
+                --out-directory ${CDOC_OUTPUT_DIRECTORY}
+                ${CDOC_EXTRA_ARGS}
+                ${PROJECT_HEADERS}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Generating Ballistic API documentation with cdoc.lua..."
+        DEPENDS luajit_exe ${CDOC_SCRIPT}
+)
+
+add_custom_target(cdoc DEPENDS doc)
 
 # -----------------------------------------------------------------------------
 # Compile Tests
