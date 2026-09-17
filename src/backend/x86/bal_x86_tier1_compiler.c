@@ -1006,12 +1006,21 @@ translate_add_sub_reg(bal_tier1_compiler_t *BAL_RESTRICT                     com
     const uint8_t  rn           = (uint8_t)extract_operand_value(instruction, &operand_cursor[1]);
     const uint32_t shift_amount = extract_operand_value(instruction, &operand_cursor[2]);
     const uint8_t  rm           = (uint8_t)extract_operand_value(instruction, &operand_cursor[3]);
+    const uint32_t shift_type   = extract_operand_value(instruction, &operand_cursor[4]);
 
     if (BAL_UNLIKELY(shift_amount != 0))
     {
         BAL_LOG_ERROR(&bal_thread_logger,
                       "Aborting function: Tier 1 does not support shift amounts != 0 yet: %s",
                       metadata->name);
+        compiler->status = BAL_ERROR_UNKNOWN_INSTRUCTION;
+        return;
+    }
+
+    if (BAL_UNLIKELY(shift_type > 2U))
+    {
+        BAL_LOG_ERROR(
+            &bal_thread_logger, "Aborting function: unsupported shift type %u.", shift_type);
         compiler->status = BAL_ERROR_UNKNOWN_INSTRUCTION;
         return;
     }
