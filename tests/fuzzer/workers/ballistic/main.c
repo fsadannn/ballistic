@@ -1,5 +1,6 @@
 #include "bal_attributes.h"
 #include "bal_engine.h"
+#include "bal_engine_flags.h"
 #include "bal_fuzzer_ipc.h"
 #include "bal_fuzzer_protocol.h"
 #include "bal_fuzzer_state.h"
@@ -127,7 +128,7 @@ main(int argc, char **argv)
         cpu.flag_n = input.initial_state.flag_n;
         cpu.flag_v = input.initial_state.flag_v;
 
-        cpu.x[30]           = BAL_ENGINE_SENTINEL;
+        cpu.x[30]           = input.instruction_count * 4ULL;
         bal_engine_t engine = {};
         status              = bal_engine_init(&engine, &cpu, &allocator, &memory_interface);
 
@@ -137,6 +138,7 @@ main(int argc, char **argv)
             continue;
         }
 
+        engine.flags |= BAL_ENGINE_FLAG_SINGLE_STEP;
         status = bal_engine_run_thread(&engine);
 
         if (BAL_ERROR_UNKNOWN_INSTRUCTION == status)

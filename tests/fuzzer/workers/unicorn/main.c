@@ -6,7 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define GUEST_BASE_ADDRESS 0x1000ULL
+#define GUEST_BASE_ADDRESS 0x0
 #define GUEST_MEMORY_SIZE  0X1000ULL // 4 KiB, one page.
 
 int
@@ -141,7 +141,7 @@ main(void)
             continue;
         }
 
-        unicorn_error = uc_emu_start(engine, GUEST_BASE_ADDRESS, x30, 0U, 0U);
+        unicorn_error = uc_emu_start(engine, GUEST_BASE_ADDRESS, x30, 0U, input.instruction_count);
 
         if (unicorn_error != UC_ERR_OK)
         {
@@ -150,9 +150,6 @@ main(void)
 
         bal_fuzzer_state_capture_unicorn_cpu(&response.final_state, engine);
         (void)uc_mem_unmap(engine, GUEST_BASE_ADDRESS, GUEST_MEMORY_SIZE);
-
-        response.final_state.pc    = BAL_ENGINE_SENTINEL;
-        response.final_state.x[30] = BAL_ENGINE_SENTINEL;
 
         if (bal_fuzzer_ipc_send(STDOUT_FILENO, &response, sizeof(response)) != BAL_SUCCESS)
         {
