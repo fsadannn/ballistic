@@ -1023,7 +1023,7 @@ translate_add_sub_reg(bal_tier1_compiler_t *BAL_RESTRICT                     com
     const bool               skip_load_rn        = false;
     const bal_x86_register_t x86_rn       = allocate_x86_register(compiler, rn, skip_load_rn);
     const bool               skip_load_rm = false;
-    const bal_x86_register_t x86_rm       = allocate_x86_register(compiler, rm, skip_load_rm);
+    bal_x86_register_t       x86_rm       = allocate_x86_register(compiler, rm, skip_load_rm);
     bal_x86_register_t       x86_rd;
 
     if (true == is_discarded_result)
@@ -1041,7 +1041,37 @@ translate_add_sub_reg(bal_tier1_compiler_t *BAL_RESTRICT                     com
         const bool skip_load_rd = true;
         x86_rd                  = allocate_x86_register(compiler, rd, skip_load_rd);
 
-        if (x86_rd != x86_rn)
+        if (x86_rd == x86_rm)
+        {
+            if (true == is_sub)
+            {
+                // Subtract rd (which holds rm) from rn, then move result back.
+                const bal_x86_macro_t sub_macro = {
+                    .opcode      = BAL_X86_MACRO_SUB_REGISTER_REGISTER,
+                    .destination = x86_rn,
+                    .source      = x86_rd,
+                };
+                bal_sliding_window_push(&compiler->window, sub_macro);
+
+                const bal_x86_macro_t mov_macro = {
+                    .opcode      = BAL_X86_MACRO_MOV_REGISTER_REGISTER,
+                    .destination = x86_rd,
+                    .source      = x86_rn,
+                };
+                bal_sliding_window_push(&compiler->window, mov_macro);
+
+                // rn was clobbered so invalidate its mapping.
+                compiler->arm_to_x86[rn]     = -1;
+                compiler->x86_to_arm[x86_rn] = -1;
+                x86_rm                       = x86_rd;
+            }
+            else
+            {
+                // ADD rd, rn.
+                x86_rm = x86_rn;
+            }
+        }
+        else if (x86_rd != x86_rn)
         {
             const bal_x86_macro_t mov_macro = {
                 .opcode      = BAL_X86_MACRO_MOV_REGISTER_REGISTER,
@@ -1049,6 +1079,9 @@ translate_add_sub_reg(bal_tier1_compiler_t *BAL_RESTRICT                     com
                 .source      = x86_rn,
             };
             bal_sliding_window_push(&compiler->window, mov_macro);
+        }
+        else
+        {
         }
     }
 
